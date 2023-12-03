@@ -1,0 +1,4 @@
+﻿  main.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.37.32822\include\ranges(12): warning STL4038: The contents of <ranges> are available only with C++20 or later.
+C:\Users\soder\source\repos\pezzeb\AdventOfCode2023\day2\main.cpp(167,19): warning C4267: '+=': conversion from 'size_t' to 'long', possible loss of data
+  day2.vcxproj -> C:\Users\soder\source\repos\pezzeb\AdventOfCode2023\x64\Debug\day2.exe
