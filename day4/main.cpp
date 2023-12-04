@@ -10,9 +10,7 @@
 #include <unordered_map>
 #include <functional>
 
-
 #include <locale>
-
 
 #include <vector>
 #include <ranges>
@@ -54,7 +52,7 @@ public:
 		auto vectorOfInputs = splitStringIntoVector(input, '|');
 
 		std::vector<std::string> list = splitStringIntoVector(vectorOfInputs[0], ' ');
-		std::copy_if(list.begin(), list.end(), std::back_inserter(ticketNumbers), [](std::string s) {return true; });
+		std::copy_if(list.begin(), list.end(), std::back_inserter(ticketNumbers), [](std::string s) {return s != ""; });
 		std::sort(ticketNumbers.begin(), ticketNumbers.end());
 		
 		list = splitStringIntoVector(vectorOfInputs[1], ' ');
@@ -90,9 +88,9 @@ class DeckOfCards
 public:
 	DeckOfCards(const std::string dataFile)
 	{
-		cards = readData(dataFile);
+		readData(dataFile, cards);
 		std::vector<long> onesVector(cards.size(), 1L);
-		NumberOfCards = onesVector;
+		std::swap(NumberOfCards, onesVector);
 	}
 
 	DeckOfCards() = default;
@@ -116,23 +114,16 @@ public:
 		return std::accumulate(NumberOfCards.begin(), NumberOfCards.end(), 0L);
 	}
 
-
 private:
-	std::vector<singleCard>
-		readData(std::string dataFile)
+	void
+		readData(std::string dataFile, std::vector<singleCard>& data)
 	{
-		std::vector<singleCard> data;
 		std::ifstream inputFile(dataFile);
-
 		std::string line;
-		while (std::getline(inputFile, line)) {
+		while (std::getline(inputFile, line))
 			data.push_back(singleCard(removeFirstPartOfInput(line)));
-		}
-		return data;
 	}
 };
-
-
 
 int main()
 {
@@ -149,5 +140,4 @@ int main()
 	std::cout << std::endl;
 	std::cout << "Part 2, test: " << testPart2 << "; and real: " << realPart2;
 	std::cout << std::endl;
-
 }
