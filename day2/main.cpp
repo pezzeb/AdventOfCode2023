@@ -196,18 +196,6 @@ int main()
 	std::cout << "Part 1, test: " << part1Test << "; and real: " << part1Real;
 	std::cout << std::endl;
 	std::cout << "Part 2, test: " << part2Test << "; and real: " << part2Real;
-
-	// Part 1 
-	/*std::vector<std::string> stringVector = { "1abc2", "pqr3stu8vwx", "a1b2c3d4e5f", "treb7uchet" };
-	auto part1test = firstPart("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/AoC2023solution/data/day1test.txt");
-	auto part1real = firstPart("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/AoC2023solution/data/day1real.txt");*/
-	//std::cout << "Part 1, test: " << part1test << "; and real: " << part1real;
-
 	std::cout << std::endl;
-
-	//Part 2 
-	/*auto part2test = secondPart("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/AoC2023solution/data/day1test2.txt");
-	auto part2real = secondPart("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/AoC2023solution/data/day1real.txt");*/
-	//std::cout << "Part 2, test: " << part2test << "; and real: " << part2real;
 
 }
