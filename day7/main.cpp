@@ -18,10 +18,10 @@
 class pokerCard
 {
 private:
-    int val;
+    
 
 public:
-
+    int val;
 
     pokerCard(char c)
     {
@@ -32,7 +32,7 @@ public:
         else if (c == 'Q')
             val = 12;
         else if (c == 'J')
-            val = 11;
+            val = 0;
         else if (c == 'T')
             val = 10;
         else
@@ -66,9 +66,33 @@ private:
     long bet;
     typeOfPokerHand typeOfHand;
 
-    std::vector<std::string> possibleReplacments{"2", "3", "4", "5", "6", "7", "8", "9", "T", "Q", "K", "A" };
+    std::vector<int> possibleReplacments{2,3,4,5,6,7,8,9,10,12,13,14 };
 
-    typeOfPokerHand classifyHand(std::vector<pokerCard>cards)
+
+    typeOfPokerHand classifyHandPart1(std::vector<pokerCard>cards) //Part 1
+    {
+        return classifyHandInner(cards);
+    }
+
+    typeOfPokerHand classifyHand(std::vector<pokerCard>cards) //Part 2
+    {
+        std::vector< typeOfPokerHand> hands;
+        for (auto rr : possibleReplacments)
+        {
+            auto tmpCards = cards;
+            for (auto &cc : tmpCards)
+            {
+                if (cc.val == 0)
+                    cc.val = rr;
+            }
+            hands.push_back(classifyHandInner(tmpCards));
+        }
+        
+        std::sort(hands.begin(), hands.end());
+        return hands.back();
+    }
+
+    typeOfPokerHand classifyHandInner(std::vector<pokerCard>cards)
     {
         std::sort(cards.begin(), cards.end());
         if (cards[0] == cards[4])
