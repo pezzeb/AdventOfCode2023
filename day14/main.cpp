@@ -8,6 +8,8 @@
 #include <sstream>
 #include <tuple>
 #include <unordered_map>
+#include <functional>
+
 
 #include <vector>
 #include <ranges>
@@ -31,10 +33,6 @@ public:
 	{
 		xPosition -= distance;
 	}
-	void roolNorthTo(int newPos)
-	{
-		xPosition = newPos;
-	}
 	void roolSouth(int distance)
 	{
 		xPosition += distance;
@@ -46,6 +44,23 @@ public:
 	void roolEast(int distance)
 	{
 		yPosition += distance;
+	}
+
+	void roolNorthTo(int newPos)
+	{
+		xPosition = newPos;
+	}
+	void roolWestTo(int newPos)
+	{
+		yPosition = newPos;
+	}
+	void roolSouthTo(int newPos)
+	{
+		xPosition = newPos;
+	}
+	void roolEastTo(int newPos)
+	{
+		yPosition = newPos;
 	}
 
 	const int getX()
@@ -60,8 +75,6 @@ public:
 	{
 		return roolable;
 	}
-		
-
 };
 
 
@@ -72,7 +85,6 @@ class platform
 	int lowestY = 0;
 	int hightestX;
 	int hightestY;
-
 
 	std::vector<Stone> readData(std::string dataFile)
 	{
@@ -99,21 +111,8 @@ class platform
 		return data;
 	}
 
-	//std::vector<std::vector<Stone>> 
-	//groupByVertically(std::vector<Stone> input)
-	//{
-	//	for (size_t i = 0; i < hightestY; i++)
-	//	{
-	//		for (size_t j = 0; j < hightestX; j++) {
 
-	//		}
-	//	};
-	//}
-
-
-public:
-
-	bool sortStonesVertically(Stone& st1, Stone& st2)
+	bool sortStonesForNorthRoll(Stone& st1, Stone& st2)
 	{
 		if (st1.getY() < st2.getY())
 			return true;
@@ -122,51 +121,175 @@ public:
 		else
 			return st1.getX() < st2.getX();
 	}
+	void sortNorth()
+	{
+		std::sort(stones.begin(), stones.end(), [this](Stone a, Stone b) {return this->sortStonesForNorthRoll(a, b); });
+	}
+	bool sortStonesForWestRoll(Stone& st1, Stone& st2)
+	{
+		if (st1.getX() < st2.getX())
+			return true;
+		else if (st2.getX() < st1.getX())
+			return false;
+		else
+			return st1.getY() < st2.getY();
+	}
+	void sortWest()
+	{
+		std::sort(stones.begin(), stones.end(), [this](Stone a, Stone b) {return this->sortStonesForWestRoll(a, b); });
+	}
+	bool sortStonesForSouthRoll(Stone& st1, Stone& st2)
+	{
+		if (st1.getY() < st2.getY())
+			return true;
+		else if (st2.getY() < st1.getY())
+			return false;
+		else
+			return st1.getX() > st2.getX();
+	}
+	void sortSouth()
+	{
+		std::sort(stones.begin(), stones.end(), [this](Stone a, Stone b) {return this->sortStonesForSouthRoll(a, b); });
+	}
+	bool sortStonesForEastRoll(Stone& st1, Stone& st2)
+	{
+		if (st1.getX() < st2.getX())
+			return true;
+		else if (st2.getX() < st1.getX())
+			return false;
+		else
+			return st1.getY() > st2.getY();
+	}
+	void sortEast()
+	{
+		std::sort(stones.begin(), stones.end(), [this](Stone a, Stone b) {return this->sortStonesForEastRoll(a, b); });
+	}
 
+public:
 	platform(std::string inputPath)
 	{
 		stones = readData(inputPath);
-		std::sort(stones.begin(), stones.end(), [this](Stone a, Stone b) {return this->sortStonesVertically(a,b); });
 	}
 
 	void roolPlatformNorth()
 	{
-		roolPlatformGeneric();
+		sortNorth();
+		roolPlatformGeneric(
+			lowestX,
+			0,
+			[](int a, Stone s) {return s.getY() == a; },
+			[](int a, Stone s) {return s.getY() == a + 1; },
+			[](int a) { return a + 1; },
+			[](int a) { return a + 1; },
+			[](std::vector<Stone>::iterator s) {return s->getX() + 1; },
+			[](std::vector<Stone>::iterator s, int newPos) {s->roolNorthTo(newPos);}
+		);
+	}
+	void roolPlatformWest()
+	{
+		sortWest();
+		roolPlatformGeneric(
+			lowestY,
+			0,
+			[](int a, Stone s) {return s.getX() == a; },
+			[](int a, Stone s) {return s.getX() == a + 1; },
+			[](int a) { return a + 1; },
+			[](int a) { return a + 1; },
+			[](std::vector<Stone>::iterator s) {return s->getY() + 1; },
+			[](std::vector<Stone>::iterator s, int newPos) {s->roolWestTo(newPos); }
+		);
+	}
+	void roolPlatformSouth()
+	{
+		sortSouth();
+		roolPlatformGeneric(
+			hightestX - 1,
+			0,
+			[](int a, Stone s) {return s.getY() == a; },
+			[](int a, Stone s) {return s.getY() == a + 1; },
+			[](int a) { return a + 1; },
+			[](int a) { return a - 1; },
+			[](std::vector<Stone>::iterator s) {return s->getX() - 1; },
+			[](std::vector<Stone>::iterator s, int newPos) {s->roolSouthTo(newPos); }
+		);
+	}
+	void roolPlatformEast()
+	{
+		sortEast();
+		roolPlatformGeneric(
+			hightestY - 1,
+			0,
+			[](int a, Stone s) {return s.getX() == a; },
+			[](int a, Stone s) {return s.getX() == a + 1; },
+			[](int a) { return a + 1; },
+			[](int a) { return a - 1; },
+			[](std::vector<Stone>::iterator s) {return s->getY() - 1; },
+			[](std::vector<Stone>::iterator s, int newPos) {s->roolEastTo(newPos); }
+		);
 	}
 
 
-	void roolPlatformGeneric()
+	void roolPlatformGeneric(
+		int resetPos, 
+		int startColon, 
+		const std::function<bool(int currentColonOrRow, Stone s)>& findCurrentColonOrRow,
+		const std::function<bool(int currentColonOrRow, Stone s)>& findNextColonOrRow,
+		const std::function<int(int currentColonOrRow)>& updateCurrentColonOrRow,
+		const std::function<int(int currentColonOrRow)>& updateResetPositionInLoop,
+		const std::function<int(std::vector<Stone>::iterator s)>& updateResetPositionifNotRoolable,
+		const std::function<void(std::vector<Stone>::iterator s, int newPos)>& rollStone)
 	{
 		auto currentStone = stones.begin();
 		auto itNextColon = stones.begin();
-		int currentColon = 0;
-		int lowestPossible = lowestX;
+		int currentColonOrRow = startColon;
+		int resetPosition = resetPos;
 		std::vector<Stone>::iterator itCurrentColon;
+
 		while (currentStone!=stones.end())
 		{
 			if (currentStone == itNextColon)
 			{
-				lowestPossible = lowestX;
-				itCurrentColon = std::find_if(currentStone, stones.end(), [currentColon](Stone s) {return s.getY() == currentColon; });
-				itNextColon = std::find_if(currentStone, stones.end(), [currentColon](Stone s) {return s.getY() == currentColon+1; });
-				currentColon++;
+				resetPosition = resetPos;
+				itCurrentColon = std::find_if(currentStone, stones.end(), [findCurrentColonOrRow, currentColonOrRow](Stone s) {return findCurrentColonOrRow(currentColonOrRow, s); });
+				itNextColon = std::find_if(currentStone, stones.end(), [findNextColonOrRow, currentColonOrRow](Stone s) {return findNextColonOrRow(currentColonOrRow, s); });
+				currentColonOrRow = updateCurrentColonOrRow(currentColonOrRow);
 			}
 			if (!currentStone->isRoolable())
 			{
-				lowestPossible = currentStone->getX() + 1;
+				resetPosition = updateResetPositionifNotRoolable(currentStone);
 			}
 			else
 			{
-				currentStone->roolNorthTo(lowestPossible);
-				lowestPossible++;
+				rollStone(currentStone, resetPosition);
+				resetPosition = updateResetPositionInLoop(resetPosition);
 			}
 			currentStone++;
 		}
 	}
 
-	int computePart1()
+	void cycle()
 	{
 		this->roolPlatformNorth();
+		this->roolPlatformWest();
+		this->roolPlatformSouth();
+		this->roolPlatformEast();
+	}
+
+	std::vector<std::tuple<int, int>> encodePlatform()
+	{
+		std::vector<std::tuple<int, int>> tmp;
+		for (auto stone : stones)
+		{
+			if (stone.isRoolable())
+			{
+				tmp.push_back(std::tuple<int, int>(stone.getX(),stone.getY()));
+			}
+		}
+		return tmp;
+	}
+
+	int computeValue()
+	{
 		int cumsum = 0;
 		for (auto stone : stones)
 		{
@@ -175,9 +298,43 @@ public:
 				auto tmp = (hightestY - stone.getX());
 				cumsum += tmp;
 			}
-				
 		}
 		return cumsum;
+	}
+
+	int computePart1()
+	{
+		this->roolPlatformNorth();
+		return computeValue();
+	}
+	int computePart2()
+	{
+		long long restCycles;
+		std::vector<std::vector<std::tuple<int, int>>> previousEncodings;
+		while (true)
+		{
+			this->cycle();
+			auto tmpCoding = this->encodePlatform();
+			auto it = std::find(previousEncodings.begin(), previousEncodings.end(), tmpCoding);
+			if (it == previousEncodings.end())
+			{
+				previousEncodings.push_back(tmpCoding);
+			}
+			else
+			{
+				auto diffN = it- previousEncodings.begin();
+				auto numberOfCyclesInLoop = previousEncodings.size() - diffN;
+				auto kola = (1000000000 - diffN)/ numberOfCyclesInLoop;
+				auto asdf = kola * numberOfCyclesInLoop;
+				restCycles = 1000000000 - diffN - asdf;
+				break;
+			}
+		}
+		for (size_t i = 0; i < restCycles-1; i++)
+		{
+			this->cycle();
+		}
+		return computeValue();
 	}
 };
 
@@ -190,15 +347,11 @@ int main()
 
 	auto testPart1 = platformTest1.computePart1();
 	auto realPart1 = platformReal1.computePart1();
-
-	//for (size_t i = 0; i < 1000; i++)
-	//{
-	//	std::cout << i << std::endl;
-	//	platformReal1.roolPlatformNorth();
-	//}
-
-
 	std::cout << "Part1 test: " << testPart1 << " real: " << realPart1 << std::endl;
+
+	auto testPart2 = platformTest1.computePart2();
+	auto realPart2 = platformReal1.computePart2();
+	std::cout << "Part 2 test: " << testPart2 << " real: " << realPart2 << std::endl;
 
 	auto kola = 90;
 }
