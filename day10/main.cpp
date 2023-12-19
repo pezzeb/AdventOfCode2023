@@ -222,13 +222,10 @@ public:
 	}
 };
 
-
-
 class Ground
 {
 	std::vector<std::vector<Pipe*>> pipes;
 	int nRows, nCols;
-	//Direction currentDirection;
 	std::tuple<int, int> startCoordinateOfTheGround;
 
 	void readData(std::string dataFile)
@@ -236,7 +233,6 @@ class Ground
 		std::ifstream inputFile(dataFile);
 		std::string line;
 		std::vector<std::string> data;
-		//std::vector<std::vector<Pipe>> output;
 
 		while (std::getline(inputFile, line))
 		{
@@ -278,9 +274,7 @@ class Ground
 			}
 			pipes.emplace_back(tmpOutput);
 		}
-		//return output;
 	}
-
 	
 	std::tuple<int, int> findStart()
 	{
@@ -356,7 +350,7 @@ public:
 		return nextPipe->getNewDirection(StartDirection);
 	}
 
-	long long computePart1(std::tuple<int, int> currentCoordinate, Direction currentDirection)
+	std::vector<std::tuple<int, int>> computePartLoop(std::tuple<int, int> currentCoordinate, Direction currentDirection)
 	{
 		std::vector<std::tuple<int, int>> loop;
 		do 
@@ -366,51 +360,88 @@ public:
 			Pipe* nextPipe = findPipeOfCoordinate(currentCoordinate);
 			nextPipe->getNewDirection(currentDirection);
 		} while (startCoordinateOfTheGround != currentCoordinate);
-		return loop.size() / 2;
+		return loop;
+	}
+	std::vector<std::tuple<int, int>> extractLoop()
+	{
+		std::vector<Direction> possibleStartDirections{ north, south, east, west };
+
+		std::vector<std::tuple<int, int>> loopN;
+		for (auto dir : possibleStartDirections)
+		{
+			if (validDirection(startCoordinateOfTheGround, dir))
+			{
+				loopN = computePartLoop(startCoordinateOfTheGround, dir);
+			}
+		}
+		return loopN;
 	}
 
 	long long computePart1Main()
 	{
-		
+		auto loopN = extractLoop();
+		return loopN.size() / 2;
+	}
 
-		auto isNorthValid = validDirection(startCoordinateOfTheGround, north);
-		auto isWestValid = validDirection(startCoordinateOfTheGround, west);
-		auto isEastValid = validDirection(startCoordinateOfTheGround, east);
-		auto isSouthValid = validDirection(startCoordinateOfTheGround, south);
-
-		//startNorth
-		if (isNorthValid)
-		{
-			return computePart1(startCoordinateOfTheGround, north);
-		}
-		else if (isWestValid)
-		{
-			return computePart1(startCoordinateOfTheGround, west);
-		}
-		else if (isEastValid)
-		{
-			return computePart1(startCoordinateOfTheGround, east);
-		}
+	long long computeArea(std::vector<std::tuple<int, int>> loopN)
+	{
+		auto tmp1 = computeAreaClockWise(loopN);
+		if(tmp1>0)
+			return tmp1;
 		else
 		{
-			///SHOULD NOT BE ABLE TO HIT
+			auto vec = std::vector<std::tuple<int, int>>(loopN.rbegin(),loopN.rend());
+			return computeAreaClockWise(vec);
 		}
 	}
 
+	long long computeAreaClockWise(std::vector<std::tuple<int, int>> loopN)
+	{
+		long long Area = 0;
+
+		for (auto it = loopN.begin(); it!=loopN.end() - 1; it++)
+		{
+			auto p1 = *it;
+			auto p2 = *(it+1);
+			Area += (std::get<0>(p1) + std::get<0>(p2)) * (std::get<1>(p1) - std::get<1>(p2));
+		}
+		auto p1 = loopN.back();
+		auto p2 = loopN.front();
+		Area += (std::get<0>(p1) + std::get<0>(p2)) * (std::get<1>(p1) - std::get<1>(p2));
+		Area /= 2;
+		return Area;
+	}
+
+	long long computePart2Main()
+	{
+		//https://en.wikipedia.org/wiki/Shoelace_formula
+		//https://en.wikipedia.org/wiki/Pick%27s_theorem
+
+		auto loopN = extractLoop();
+		auto Area = computeArea(loopN);
+
+		return Area + 1 - loopN.size() / 2;
+	}
 };
 
 
 int main()
 {
-	
 	auto groundTest1 = Ground("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day10test1.txt");
 	auto groundTest2 = Ground("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day10test2.txt");
 	auto groundReal = Ground("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day10real.txt");
 	auto test1 = groundTest1.computePart1Main();
 	auto test2 = groundTest2.computePart1Main();
 	auto real = groundReal.computePart1Main();
-
 	std::cout << "Part 1, test 1: " << test1 << "; test2 :" << test2 << "; and real: " << real << std::endl;
-	
+
+	auto groundPart2Test1 = Ground("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day10part2test1.txt");
+	auto groundPart2Test2 = Ground("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day10part2test2.txt");
+	auto groundPart2Test3 = Ground("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day10part2test3.txt");
+	auto part2test1 = groundPart2Test1.computePart2Main();
+	auto part2test2 = groundPart2Test2.computePart2Main();
+	auto part2test3 = groundPart2Test3.computePart2Main();
+	auto realPart2 = groundReal.computePart2Main();
+	std::cout << "Part 2, test 1: " << part2test1 << "; test2 :" << part2test2 << "; test3 :" << part2test3 << "; and real: " << realPart2 << std::endl;
 }
 
