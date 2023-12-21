@@ -71,7 +71,60 @@ readData(std::string dataFile)
 		std::string s1, s2, s3;
 		iss >> s1 >> s2 >> s3;
 
+		std::string hexstring = s3.substr(2, 5);
+		std::string hexDirection = s3.substr(7, 1);
+
+
 		auto tmpD = Digger(s1, std::stol(s2));
+		data.push_back(tmpD);
+	}
+	return data;
+}
+
+//https://stackoverflow.com/questions/1070497/c-convert-hex-string-to-signed-integer
+
+long long hexConverter(std::string line)
+{
+	long long x;
+	std::stringstream ss;
+	ss << std::hex << line;
+	ss >> x;
+	return x;
+}
+
+std::vector<Digger>
+readDataPart2(std::string dataFile)
+{
+	std::ifstream inputFile(dataFile);
+	std::vector<Digger> data;
+	std::string line;
+
+	std::vector<std::vector<std::string>> output;
+
+	std::vector<std::string> tmpVec;
+	while (std::getline(inputFile, line))
+	{
+		std::istringstream iss(line);
+
+		std::string s1, s2, s3;
+		iss >> s1 >> s2 >> s3;
+
+		std::string hexstring = s3.substr(2, 5);
+		std::string hexDirection = s3.substr(7, 1);
+
+		std::string str;
+		if (hexDirection == "0")
+			str = "R";
+		else if (hexDirection == "1")
+			str = "D";
+		else if (hexDirection == "2")
+			str = "L";
+		else if (hexDirection == "3")
+			str = "U";
+
+		auto kola = hexConverter(hexstring);
+
+		auto tmpD = Digger(str, kola);
 		data.push_back(tmpD);
 	}
 	return data;
@@ -107,17 +160,16 @@ long long computePart1(std::vector<Digger> vecDigger)
 
 	coordinates.push_back(std::tuple<double, double>(x0, y0));
 
+	long long boundaryPoints = 0;
+
 	for (auto digg : vecDigger)
 	{
 		auto step = Stepper(digg.getDirection());
+		boundaryPoints += digg.getSteps();
 
-		for (size_t i = 0; i < digg.getSteps(); i++)
-		{
-			x0 += step.x;
-			y0 += step.y;
-			coordinates.push_back(std::tuple<double, double>(x0, y0));
-		}
-		
+		x0 += step.x* digg.getSteps();
+		y0 += step.y* digg.getSteps();
+		coordinates.push_back(std::tuple<double, double>(x0, y0));
 	}
 	
 	double area = 0;
@@ -130,18 +182,16 @@ long long computePart1(std::vector<Digger> vecDigger)
 		area += xDiff * yDiff;
 	}
 	area = area / 2;
-
 	area = area < 0 ? (- area) : area;
 
-	double interiorPoints = area - (coordinates.size() - 1) / 2 + 1;
+	double interiorPoints = area - boundaryPoints / 2 + 1;
 
-	return interiorPoints + coordinates.size() - 1;
+	return interiorPoints + boundaryPoints;
 }
 
 
 int main()
 {
-
 
 	auto ownTestData = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day18test0.txt");
 	auto ownTestAnswer = computePart1(ownTestData);
@@ -154,5 +204,13 @@ int main()
 
 	std::cout << "Part 1, test own: " << ownTestAnswer << "; test 1: " << testAnswer << "; real: " << realAnswer << std::endl;
 
-	auto ending = 90;
+
+	auto testData2 = readDataPart2("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day18test.txt");
+	auto testAnswer2 = computePart1(testData2);
+
+	auto realData2 = readDataPart2("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day18real.txt");
+	auto realAnswer2 = computePart1(realData2);
+
+	std::cout << "Part 2, test 1: " << testAnswer2 << "; real: " << realAnswer2 << std::endl;
+
 }
