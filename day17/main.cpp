@@ -98,7 +98,7 @@ public:
 
 	std::vector<Direction> previousDirection;
 
-	int fScore;
+	double fScore;
 
 	dummyClass()
 	{
@@ -109,7 +109,7 @@ public:
 		{
 			previousDirection = std::vector<Direction>{None};
 		}
-		fScore = std::numeric_limits<int>::infinity();
+		fScore = std::numeric_limits<double>::infinity();
 	}
 
 	dummyClass(int xin, int yin, std::vector<std::vector<int>>* heatMapIn)
@@ -120,7 +120,7 @@ public:
 		nRows = heatMap->size() - 1;
 
 		previousDirection = std::vector<Direction>{None};
-		fScore = std::numeric_limits<int>::infinity();
+		fScore = std::numeric_limits<double>::infinity();
 
 	}
 
@@ -228,10 +228,13 @@ int main()
 	//auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17test.txt");
 	auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17real.txt");
 
+	//fScore is 0 and NOT inf?
 
     auto asdf = AstarAlgorithm<dummyClass>();
     auto start = dummyClass(0, 0, &heatMapN);
     auto ending = dummyClass(heatMapN.size()-1, heatMapN.size()-1, &heatMapN);
+
+	std::cout << start.fScore << std::endl;
 
     auto pathN = asdf.A_Star(start, ending, &hfunc, &dfunc);
 	std::reverse(pathN.begin(), pathN.end());
