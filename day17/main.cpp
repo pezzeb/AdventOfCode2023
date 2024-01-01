@@ -94,29 +94,34 @@ public:
 
 	int nRows;
 
-	std::vector<std::vector<int>> heatMap;
+	std::vector<std::vector<int>>* heatMap;
 
 	std::vector<Direction> previousDirection;
 
+	int fScore;
+
 	dummyClass()
 	{
-		heatMap = std::vector<std::vector<int>>();
+		heatMap = nullptr; // std::vector<std::vector<int>>();
 		x = 0;
 		y = 0;
-		nRows = heatMap.size() - 1;
+		nRows = - 1;
 		{
 			previousDirection = std::vector<Direction>{None};
 		}
+		fScore = std::numeric_limits<int>::infinity();
 	}
 
-	dummyClass(int xin, int yin, std::vector<std::vector<int>> heatMapIn)
+	dummyClass(int xin, int yin, std::vector<std::vector<int>>* heatMapIn)
 	{
 		heatMap = heatMapIn;
 		x = xin;
 		y = yin;
-		nRows = heatMap.size() - 1;
+		nRows = heatMap->size() - 1;
 
 		previousDirection = std::vector<Direction>{None};
+		fScore = std::numeric_limits<int>::infinity();
+
 	}
 
 	const std::vector<dummyClass> getNeighbor()
@@ -199,12 +204,11 @@ public:
 double hfunc(const dummyClass cc)
 {
 	return cc.nRows * 2 - cc.y - cc.x; //no heat loss when you are in the point
-
 }
 
 double dfunc(const dummyClass cc, const dummyClass dd)
 {
-	return dd.heatMap[dd.x][dd.y];
+	return (*dd.heatMap)[dd.x][dd.y];
 }
 
 double computeHeatLoss(const std::vector<dummyClass> vec)
@@ -212,7 +216,7 @@ double computeHeatLoss(const std::vector<dummyClass> vec)
 	int cumsum = 0;
 	for (auto vv : vec)
 	{
-		auto delta = vv.heatMap[vv.x][vv.y];
+		auto delta = (*vv.heatMap)[vv.x][vv.y];
 		cumsum += delta;
 	}
 	return cumsum;
@@ -220,31 +224,22 @@ double computeHeatLoss(const std::vector<dummyClass> vec)
 
 int main()
 {
-    double a = 7.4;
-    int b = 99;
 
-    std::cout << "a + b = " <<
-        MathLibrary::Arithmetic::Add(a, b) << std::endl;
-    std::cout << "a - b = " <<
-        MathLibrary::Arithmetic::Subtract(a, b) << std::endl;
-    std::cout << "a * b = " <<
-        MathLibrary::Arithmetic::Multiply(a, b) << std::endl;
-    std::cout << "a / b = " <<
-        MathLibrary::Arithmetic::Divide(a, b) << std::endl;
-
-	auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17test.txt");
-	//auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17real.txt");
+	//auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17test.txt");
+	auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17real.txt");
 
 
     auto asdf = AstarAlgorithm<dummyClass>();
-    auto start = dummyClass(0, 0, heatMapN);
-    auto ending = dummyClass(heatMapN.size()-1, heatMapN.size()-1, heatMapN);
+    auto start = dummyClass(0, 0, &heatMapN);
+    auto ending = dummyClass(heatMapN.size()-1, heatMapN.size()-1, &heatMapN);
 
     auto pathN = asdf.A_Star(start, ending, &hfunc, &dfunc);
 	std::reverse(pathN.begin(), pathN.end());
 
 
 	auto part1test = computeHeatLoss(pathN);
+
+	std::cout << "Part 1 test:" << part1test - heatMapN[0][0] << std::endl;
 
     return 0;
 
