@@ -84,20 +84,10 @@ public:
 		return kola;
 	}
 
-
-	const Direction tmpeFunc() const
-	{
-		return None;
-	}
-
 	int x, y;
-
 	int nRows;
-
 	std::vector<std::vector<int>>* heatMap;
-
 	std::vector<Direction> previousDirection;
-
 	double fScore;
 
 	dummyClass()
@@ -197,8 +187,6 @@ public:
 		else
 			return true;
 	}
-
-
 };
 
 double hfunc(const dummyClass cc)
@@ -225,24 +213,26 @@ double computeHeatLoss(const std::vector<dummyClass> vec)
 int main()
 {
 
-	//auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17test.txt");
-	auto heatMapN = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17real.txt");
+	auto heatMapTest = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17test.txt");
+	auto heatMapReal = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day17real.txt");
 
-	//fScore is 0 and NOT inf?
+    auto aStarAlgorithComputer = AstarAlgorithm<dummyClass>();
+	auto startTest = dummyClass(0, 0, &heatMapTest);
+	auto startReal = dummyClass(0, 0, &heatMapReal);
+	auto endingTest = dummyClass(heatMapTest.size() - 1, heatMapTest.size() - 1, &heatMapTest);
+	auto endingReal = dummyClass(heatMapReal.size() - 1, heatMapReal.size() - 1, &heatMapReal);
 
-    auto asdf = AstarAlgorithm<dummyClass>();
-    auto start = dummyClass(0, 0, &heatMapN);
-    auto ending = dummyClass(heatMapN.size()-1, heatMapN.size()-1, &heatMapN);
-
-	std::cout << start.fScore << std::endl;
-
-    auto pathN = asdf.A_Star(start, ending, &hfunc, &dfunc);
-	std::reverse(pathN.begin(), pathN.end());
+	auto pathNTest = aStarAlgorithComputer.A_Star(startTest, endingTest, &hfunc, &dfunc);
+	std::reverse(pathNTest.begin(), pathNTest.end());
+	auto pathNReal = aStarAlgorithComputer.A_Star(startReal, endingReal, &hfunc, &dfunc);
+	std::reverse(pathNReal.begin(), pathNReal.end());
 
 
-	auto part1test = computeHeatLoss(pathN);
+	auto part1test = computeHeatLoss(pathNTest);
+	auto part1real = computeHeatLoss(pathNReal);
 
-	std::cout << "Part 1 test:" << part1test - heatMapN[0][0] << std::endl;
+	std::cout << "Part 1 test:" << part1test - heatMapTest[0][0] << std::endl;
+	std::cout << "Part 1 real:" << part1real - heatMapReal[0][0] << std::endl;
 
     return 0;
 
