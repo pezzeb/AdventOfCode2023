@@ -85,6 +85,7 @@ public:
 	// Pure Virtual Function
 	virtual bool isEnergized() = 0;
 	virtual void energize() = 0;
+	virtual void unEnergize() = 0;
 	virtual std::vector<LaserBeamPoint> processLaser(LaserBeamPoint& las) = 0;
 };
 
@@ -98,6 +99,7 @@ public:
 	}
 	bool isEnergized() override {return hasBeenEnergized;}
 	void energize() override { hasBeenEnergized = true; }
+	void unEnergize() override { hasBeenEnergized = false; }
 	std::vector<LaserBeamPoint> processLaser(LaserBeamPoint& las) override
 	{
 		return std::vector<LaserBeamPoint>();
@@ -116,6 +118,7 @@ public:
 	}
 	bool isEnergized() override { return hasBeenEnergized; }
 	void energize() override { hasBeenEnergized = true; }
+	void unEnergize() override { hasBeenEnergized = false; }
 	std::vector<LaserBeamPoint> processLaser(LaserBeamPoint& las) override
 	{
 		auto tmpBeamer = std::vector<LaserBeamPoint>();
@@ -156,6 +159,7 @@ public:
 	}
 	bool isEnergized() override { return hasBeenEnergized; }
 	void energize() override { hasBeenEnergized = true; }
+	void unEnergize() override { hasBeenEnergized = false; }
 	std::vector<LaserBeamPoint> processLaser(LaserBeamPoint& las) override
 	{
 		auto tmpBeamer = std::vector<LaserBeamPoint>();
@@ -220,7 +224,7 @@ readData(std::string dataFile)
 
 class playingField
 {
-	std::vector<std::vector<SquareGrid*>> squares;
+	std::vector<std::vector<SquareGrid*>>* squares;
 	std::vector<LaserBeamPoint> historyOfLaserBeams;
 
 	bool checkIfBeamsHasBeenThere(LaserBeamPoint &las)
@@ -248,12 +252,17 @@ class playingField
 public:
 	std::vector<LaserBeamPoint> laserBeamsVec;
 
-	playingField(std::string pathToInput)
+	playingField(std::vector<std::vector<SquareGrid*>>* squaresIn)
 	{
-		squares = readData(pathToInput);
+		squares = squaresIn;
 		laserBeamsVec.push_back(LaserBeamPoint(0, -1, 0, 1));
-		squares[0][0]->energize();
-		//historyOfLaserBeams.push_back(laserBeamsVec.back());
+		(*squares)[0][0]->energize();
+	}
+	playingField(std::vector<std::vector<SquareGrid*>>* squaresIn, long long xin, long long yin, long long vxin, long long vyin)
+	{
+		squares = squaresIn;
+		laserBeamsVec.push_back(LaserBeamPoint(xin, yin, vxin, vyin));
+		(*squares)[xin+vxin][yin+vyin]->energize();
 	}
 	void runLaserBeam()
 	{
@@ -272,9 +281,10 @@ public:
 			}
 			else
 			{
-				if (las.isValidBeam(squares.size()-1, squares[0].size()-1))
+				if (las.isValidBeam(squares->size()-1, squares[0].size()-1))
 				{
-					auto squ = squares[las.getX()][las.getY()];
+					auto tmp = (*squares);
+					auto squ = tmp[las.getX()][las.getY()];
 					squ->energize();
 					auto newBeams = squ->processLaser(las);
 					if (newBeams.size() > 0)
@@ -292,7 +302,6 @@ public:
 	}
 	void part1runner()
 	{
-
 		while (laserBeamsVec.size()>0)
 		{
 			runLaserBeam();
@@ -302,29 +311,122 @@ public:
 	long long countEnergized()
 	{
 		long long counter = 0;
-		for (size_t r = 0; r < squares.size(); r++)
+		for (size_t r = 0; r < squares->size(); r++)
 		{
-			for (size_t c = 0; c < squares[0].size(); c++)
+			for (size_t c = 0; c < (*squares)[0].size(); c++)
 			{
-				counter += squares[r][c]->isEnergized() ? 1 : 0;
+				counter += (*squares)[r][c]->isEnergized() ? 1 : 0;
 			}
 		}
 		return counter;
 	}
 
+	void unEnegerizeGrid()
+	{
+		for (size_t r = 0; r < squares->size(); r++)
+		{
+			for (size_t c = 0; c < (*squares)[0].size(); c++)
+			{
+				(*squares)[r][c]->unEnergize();
+			}
+		}
+	}
+
+	void printEnerigation()
+	{
+		for (size_t r = 0; r < squares->size(); r++)
+		{
+			for (size_t c = 0; c < (*squares)[0].size(); c++)
+			{
+				if ((*squares)[r][c]->isEnergized())
+					std::cout << "#";
+				else
+					std::cout << ".";
+				
+			}
+			std::cout << std::endl;
+		}
+	}
+
 };
+
+
 
 int main()
 {
-	auto playFieldPart1test = playingField("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day16test.txt");
+	auto squaresWithMirrorsTest = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day16test.txt");
+	auto playFieldPart1test = playingField(&squaresWithMirrorsTest);
 	playFieldPart1test.part1runner();
 	auto numberOfEnergizeTestPart1 = playFieldPart1test.countEnergized();
 
-	auto playFieldPart1real = playingField("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day16real.txt");
+	auto squaresWithMirrorsReal = readData("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day16real.txt");
+	auto playFieldPart1real = playingField(&squaresWithMirrorsReal);
 	playFieldPart1real.part1runner();
-	auto numberOfEnergizeRealPart1 = playFieldPart1real.countEnergized(); //120 is too low
+	auto numberOfEnergizeRealPart1 = playFieldPart1real.countEnergized();
 
 	std::cout << "Part 1, test: " << numberOfEnergizeTestPart1 << "; and real: " << numberOfEnergizeRealPart1 << std::endl;
+
+	// Part 2 
+	auto part2field = squaresWithMirrorsReal;
+	auto nRow = part2field.size();
+	auto nCol = part2field[0].size();
+
+	//Left Edge
+	
+	std::vector<long long> energizedCells;
+
+	for (size_t i = 0; i < nRow; i++)
+	{
+		auto playFieldPart1realtmp = playingField(&part2field, i, -1, 0, 1);
+		playFieldPart1realtmp.part1runner();
+		auto numberOfEnergizeRealPart2tmp = playFieldPart1realtmp.countEnergized();
+		//std::cout << numberOfEnergizeRealPart2tmp << std::endl;
+		std::cout << i << ", ";
+		energizedCells.push_back(numberOfEnergizeRealPart2tmp);
+		playFieldPart1realtmp.unEnegerizeGrid();
+	}
+	std::cout << std::endl;
+	//Right Edge
+	for (size_t i = 0; i < nRow; i++)
+	{
+		auto playFieldPart1realtmp = playingField(&part2field, i, nCol, 0, -1);
+		playFieldPart1realtmp.part1runner();
+		auto numberOfEnergizeRealPart2tmp = playFieldPart1realtmp.countEnergized();
+		//std::cout << numberOfEnergizeRealPart2tmp << std::endl;
+		std::cout << i << ", ";
+		energizedCells.push_back(numberOfEnergizeRealPart2tmp);
+		playFieldPart1realtmp.unEnegerizeGrid();
+	}
+	std::cout << std::endl;
+	//Upper edge 
+	for (size_t i = 0; i < nRow; i++)
+	{
+		auto playFieldPart1realtmp = playingField(&part2field, -1, i, 1, 0);
+		playFieldPart1realtmp.part1runner();
+		auto numberOfEnergizeRealPart2tmp = playFieldPart1realtmp.countEnergized();
+		//std::cout << numberOfEnergizeRealPart2tmp << std::endl;
+		energizedCells.push_back(numberOfEnergizeRealPart2tmp);
+		std::cout << i << ", ";
+		//playFieldPart1realtmp.printEnerigation();
+		playFieldPart1realtmp.unEnegerizeGrid();
+	}
+	std::cout << std::endl;
+	//Lower edge 
+	for (size_t i = 0; i < nRow; i++)
+	{
+		auto playFieldPart1realtmp = playingField(&part2field, nCol, i, -1, 0);
+		playFieldPart1realtmp.part1runner();
+		auto numberOfEnergizeRealPart2tmp = playFieldPart1realtmp.countEnergized();
+		//std::cout << numberOfEnergizeRealPart2tmp << std::endl;
+		std::cout << i << ", ";
+		energizedCells.push_back(numberOfEnergizeRealPart2tmp);
+		playFieldPart1realtmp.unEnegerizeGrid();
+	}
+	std::cout << std::endl;
+
+
+	auto part2test = *max_element(std::begin(energizedCells), std::end(energizedCells));
+	std::cout << "part 2 real: " << part2test;
 
 	auto ending = 90;
 }
