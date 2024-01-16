@@ -1,0 +1,148 @@
+\documentclass[]{article}
+
+\usepackage[authordate-trad,natbib,maxcitenames=2,backend=biber]{biblatex-chicago}
+\usepackage{filecontents}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{geometry}
+\usepackage[]{amsmath}
+	\geometry{a4paper,total={210mm,297mm},left=20.4mm,right=20.4mm,	top=20.4mm,bottom=20.4mm}
+
+
+\begin{document}
+
+\section*{Advent of Code --- 2023 --- Day 21 }
+
+This was a problem that was way harder than it looked. But after I spent some time on it so I would like to document it, just to feel some completness. There is also a excel file with some "illustation" that perhaps could give some hints. 
+
+Note that this solution is writen such that it is dependend on the shape of the input, namely that the mid row and column is possible to travel directly. 
+
+The first thing that we can notice is that square will reach a steady oscilation "state" there it goes back and foruth between two number of cells that it is possible to reach in $n$ steps: I will call these the flip and the flop state. 
+
+ I have classified the squares into different category. 
+ \begin{enumerate}
+     \item two classes are squares that have reach the oscilation between the flip and the flop state, let us denote these $x_o$ and $x_i$ as in the letter that is different between the words of "flip" and "flop". 
+     \item four classes that when an edge are reached with 130 steps left to travel 
+     \begin{itemize}
+         \item I will denote this $x_n$, $x_s$, $x_w$, and $x_e$ (where the index denotes the orientation); i.e., the lower edge of $x_n$ are reached with 130 steps left; the upper edge of $x_s$ are reach with 130 steps; and so on. 
+     \end{itemize}
+     \item four classes where one of the corner are reach with 64 steps left. 
+     \begin{itemize}
+         \item These four classes are denote with $x_{ne}^0$, $x_{nw}^0$, $x_{se}^0$, and $x_{sw}^0$ where the two letter combination indicates which of corner is reach, and $ne$ denotes north east, or could also be said the upper right corner. 
+     \end{itemize}
+     \item four classes where one of the corner are reach with $64+130$ steps left. 
+     \begin{itemize}
+         \item These four classes are denote with $x_{ne}^1$, $x_{nw}^1$, $x_{se}^1$, and $x_{sw}^1$ where the two letter combination indicates which of corner is reach, and $ne$ denotes north east, or could also be said the upper right corner. 
+     \end{itemize}
+ \end{enumerate}
+
+Then the next observation is that it is only interesting to consider the cases when edges are reached of new squares. So the first is reach after 65 steps, and then every 131 steps; and potentially residuals steps. Luckily for us, the number of steps that we should take can be written as $26501365 = 65 + 131\cdot n$, where $n$ is an integer. We do not consider (in part 2) the case of $n=0$, but we do only consider $n>0$. So the problem becomes and problem of determine the number of possible cells that is reachable for the above classes and then to count the number of classes for each $n$. 
+
+The first part --- determine the number of reachable states --- is easy since we have the solution from part 1. I will denote the number of reachable cells for each with the letter $c_{\cdot}$ and the the same index as the above. 
+
+ The second part is a bit more invovled. First we have that for the second type of classes above where we reach an edge with 130 steps, these are allways one each, so 
+\begin{equation}
+     n_n\equiv n_s\equiv n_w\equiv n_e\equiv 1, \forall n>0. 
+\end{equation}
+
+The second and third type of class is also quite straightforward where it scales linearly with the number of $n$, but where the third group lags one
+\begin{equation}
+    x_{ne}^0\equiv x_{nw}^0\equiv x_{se}^0\equiv x_{sw}^0 \equiv n     
+\end{equation}
+and 
+\begin{equation}
+    x_{ne}^1\equiv x_{nw}^1\equiv x_{se}^1\equiv x_{sw}^1 \equiv n - 1
+\end{equation}
+
+Then we have final group left and that is a bit harder but if you study the illustation you might be able to see it. First, we compute all cells that are in the first group and in the third group, let us denote this number with $N$. We can then see that the sum of these can be written as 
+\begin{equation}
+    1,9,21,37,57,81,\ldots
+\end{equation}
+This might not look like the easiest series to see where it goes, but if we compute the difference between adjacent numbers we get the following series 
+\begin{equation}
+    8, 12, 16, 20, 24, \ldots
+\end{equation}
+Hence we can write the $N$ as a sum of differences as 
+\begin{subequations}  
+\begin{gather}
+    N = 
+    1 + \left(\sum_{k=1}^{n}4k\right) - 4 = \\
+   -3 + \left(\sum_{k=1}^{n}4k\right)     = \\
+   -3 + 4 \cdot \frac{n\cdot(1+n)}{2}     = \\
+   -3 + 2 \cdot n\cdot(1+n)      
+\end{gather}
+\end{subequations} 
+Then we can study the sequence of cells that are in one of the steady states, l et denote it with $\hat{N}$, and we get the series 
+\begin{equation}
+    1,4,9,16,25,36,49,64
+\end{equation}
+and again we can do the trick of looking at the differences instead and see that it is a series that looks like 
+\begin{equation}
+    3,5,7,9,11,13,15
+\end{equation}
+so we canc write 
+\begin{equation}
+    \hat{N} = 
+     1 + \sum_{k=1}^(n) (2k-1) - 1 = \\
+    -0 + \sum_{k=1}^(n) (2k-1)     = \\
+    -0 - 1n + 2\frac{n\cdot(n+1)}{2} = \\
+    -0 - 1n + n\cdot(n+1) = n^2.
+\end{equation}
+Then we have all the parts that is necessary. 
+
+First we have $N$ that is either in the first or third group, and by subtracting the number in the third group we can find a number that is 
+\begin{equation}
+    N - 4\cdot(n-1) \equiv (-3 + 2n(1+n)) - 4(n-1) =
+    -3 +2n + 2n^2 - 4n +4 = 
+       +2n + 2n^2 - 4n    = 
+    1  -2n + 2n^2
+\end{equation}
+then we know how many is in one flip-flop state, $\hat{N}$ hence, the once that are in the other is 
+\begin{equation}
+    \tilde{N} \equiv 
+    1  -2n + 2n^2 - n^2 = 1 - 2n + n^2 = (n-1)^2.
+\end{equation}
+
+It is then finally possible to put everything together into on expression. First we can note that the expression consist of three parts, one part that is indpendent (constant) of $n$, one part that scales linear with $n$, and one part that scales with $n^2$.
+\begin{gather}
+   \underbrace{c_n + c_s + c_w + c_e}_{\text{class 4}} + 
+   \underbrace{(c_{ne}^0 + c_{nw}^0 + c_{se}^0 + c_{sw}^0)n}_{class 2} + 
+   \underbrace{(c_{ne}^1 + c_{nw}^1 + c_{se}^1 + c_{sw}^1)(n-1)}_{class 3} + 
+   \underbrace{c_in^2 + c_o(n-1)^2}_{class 1} = \\
+   (c_n + c_s + c_w + c_e) - (c_{ne}^1 + c_{nw}^1 + c_{se}^1 + c_{sw}^1) + c_o \\ \nonumber
+   n\left( (c_{ne}^0 + c_{nw}^0 + c_{se}^0 + c_{sw}^0) + (c_{ne}^1 + c_{nw}^1 + c_{se}^1 + c_{sw}^1) - 2c_o \right) + \\ \nonumber
+   n^2\left( c_i + c_o \right)
+\end{gather}
+so we can write in on the former $f(n) = \alpha n^2 + \beta n + \gamma$ where 
+\begin{subequations}
+    \begin{align}
+        \alpha &= c_i + c_o \\ 
+        \beta  &= (c_{ne}^0 + c_{nw}^0 + c_{se}^0 + c_{sw}^0) + (c_{ne}^1 + c_{nw}^1 + c_{se}^1 + c_{sw}^1) - 2c_o \\ 
+        \gamma &= (c_n + c_s + c_w + c_e) - (c_{ne}^1 + c_{nw}^1 + c_{se}^1 + c_{sw}^1) + c_o
+    \end{align}
+\end{subequations}
+
+
+Since the formula has this nice (second order) polynomial form, we do not need to determine the coefficients before hand but instead we could compute the number of possibilites for three $n$, e.g., $n=1,2,3$. And write the following system of equations 
+\begin{equation}
+    \begin{cases}
+        f(1) = \alpha\cdot 1 + \beta \cdot 1 + \gamma \\
+        f(2) = \alpha\cdot 4 + \beta \cdot 2 + \gamma \\ 
+        f(3) = \alpha\cdot 9 + \beta \cdot 3 + \gamma
+    \end{cases}
+\end{equation}
+and we can solve it as 
+\begin{equation}
+    \begin{cases}
+        f(2) - f(1) = \alpha\cdot 3 + \beta \cdot 1 \\
+        f(3) - f(2) = \alpha\cdot 5 + \beta \cdot 1 \\
+    \end{cases}
+\end{equation}
+and 
+\begin{equation}
+        f(3) - f(2)  - (f(2) - f(1)) = \alpha\cdot 2 
+\end{equation}
+and then solve one of the previous for $\beta$ and then of the first for $\gamma$. 
+
+\end{document}
