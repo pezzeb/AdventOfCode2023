@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <functional>
 #include <queue>
+#include <regex>
 
 std::vector<std::string>
 splitStringIntoVector(const std::string inputString, const char delimiter = ',')
@@ -39,9 +40,7 @@ splitStringIntoVector(const std::string inputString, const char delimiter = ',')
 	return output;
 }
 
-
 enum VOLT { HIGH, LOW, DNQ };
-
 
 class Pulse
 {
@@ -110,6 +109,10 @@ public:
 	BroadCaster(std::string line)
 	{
 		listOfreceivers = splitStringIntoVector(line);
+	}
+	BroadCaster(std::vector<std::string> listOfreceiversIn)
+	{
+		listOfreceivers = listOfreceiversIn;
 	}
 
 	std::vector<Pulse> computePulse(Pulse pulse)
@@ -190,21 +193,26 @@ public:
 
 	std::vector<Pulse> computePulse(Pulse pulse)
 	{
+		if (voltageOfInputs.find(pulse.getCurrentModule()) != voltageOfInputs.end())
+			voltageOfInputs[pulse.getCurrentModule()] = pulse.getVoltage();
+		else
+			auto breakpointy = 90;
+		
+		bool inputs = true;
+		for (auto it = voltageOfInputs.begin(); it != voltageOfInputs.end(); it++)
+		{
+			inputs = inputs && (it->second == HIGH);
+		}
+
+		std::vector<Pulse> returnVector;
 		for(auto outputModule : outputModules)
 		{ 
-			voltageOfInputs[pulse.getCurrentModule()] = pulse.getVoltage();
-
-			bool inputs = true;
-
-			for (auto it = voltageOfInputs.begin(); it != voltageOfInputs.end(); it++)
-			{
-				inputs = inputs && (it->second == HIGH);
-			}
 			if (inputs)
-				return std::vector<Pulse>{Pulse(outputModule, LOW)};
+				returnVector.push_back(Pulse(outputModule, pulse.getNextModule(), LOW));
 			else
-				return std::vector<Pulse>{Pulse(outputModule, HIGH)};
+				returnVector.push_back(Pulse(outputModule, pulse.getNextModule(), HIGH));
 		}
+		return returnVector;
 		
 	}
 };
@@ -282,52 +290,158 @@ public:
 			runCircuit();
 		}
 	}
+
+	long long computePart1()
+	{
+		return numberOfLow * numberOfHigh;
+	}
 };
+
+std::string removeSpacesLine(std::string line)
+{
+	line = std::regex_replace(line, std::regex(" "), "");
+	line = std::regex_replace(line, std::regex("->"), ",");
+	return line;
+}
+
+
+std::vector<std::string> readData(std::string dataFile)
+{
+	std::ifstream inputFile(dataFile);
+	std::string line;
+	std::vector<std::string> data;
+
+	while (std::getline(inputFile, line))
+	{
+		//std::istringstream iss(line);
+		data.push_back(line);
+	}
+	return data;
+}
+
+void parseSingleLine(std::string line, Circuit& circuit, std::map<std::string, std::vector<std::string>>& conjMap)
+{
+	auto splitLine = splitStringIntoVector(removeSpacesLine(line));
+	auto rhs = std::vector<std::string>(splitLine.begin() + 1, splitLine.end());
+
+	if (splitLine[0].find("broadcaster") != std::string::npos)
+	{
+		circuit.modules.insert(std::make_pair("broadcaster", new BroadCaster(rhs)));
+	}
+	else if (splitLine[0].find("%") != std::string::npos)
+	{
+		auto lhsName = std::string(splitLine[0].begin() + 1, splitLine[0].end());
+		circuit.modules.insert(std::make_pair(lhsName, new FlipFlop(rhs)));
+	}
+	else if (splitLine[0].find("&") != std::string::npos)
+	{
+		auto lhsName = std::string(splitLine[0].begin() + 1, splitLine[0].end());
+		auto ttttt = conjMap[lhsName];
+		circuit.modules.insert(std::make_pair(lhsName, new Conjunction(rhs, ttttt)));
+	}
+}
+
+std::map<std::string, std::vector<std::string>> 
+extractAllConjunctions(std::vector<std::string> vec)
+{
+	std::vector<std::string> outputVec;
+	std::map<std::string, std::vector<std::string>> tmp;
+
+	for (auto line : vec)
+	{
+		auto splitLine = splitStringIntoVector(removeSpacesLine(line));
+		if (splitLine[0].find("&") != std::string::npos)
+		{
+			auto lhsName = std::string(splitLine[0].begin() + 1, splitLine[0].end());
+			outputVec.push_back(lhsName);
+			tmp[lhsName] = std::vector<std::string>{};
+		}
+	}
+	return tmp;
+}
+
+void buildUpConjuctionMap(std::vector<std::string> inputLines, std::map<std::string, std::vector<std::string>>& conjName)
+{
+	std::vector<std::string> outputVec;
+	for (auto line : inputLines)
+	{
+		auto splitLine = splitStringIntoVector(removeSpacesLine(line));
+
+		auto lhsName = std::string(splitLine[0].begin() + 1, splitLine[0].end());
+		auto rhsNames = std::vector<std::string>(splitLine.begin()+1,splitLine.end());
+		for (auto rhs : rhsNames)
+		{
+			auto ggg = conjName.find(rhs);
+			if (ggg != conjName.end())
+			{
+				ggg->second.push_back(lhsName);
+			}
+		}
+	}
+}
+
+Circuit 
+parseInputToCircuit(std::string pathOfInput)
+{
+	auto inputLines = readData(pathOfInput);//
+	auto allConj = extractAllConjunctions(inputLines);
+	buildUpConjuctionMap(inputLines, allConj);
+
+	auto circuit = Circuit();
+	for (auto line : inputLines)
+	{
+		parseSingleLine(line, circuit, allConj);
+	}
+	return circuit;
+}
 
 int main()
 {
 	// Test First Example Manual
-	auto systemCircuit = Circuit();
-	auto broadCaster = BroadCaster("a,b,c");
-	auto flipflop1 = FlipFlop("b");
-	auto flipflop2 = FlipFlop("c");
-	auto flipflop3 = FlipFlop("inv");
-	auto conjection1 = Conjunction("a", std::vector<std::string>{"c"}); //Conjunciton fungerar inte helt perfelt
+	//auto systemCircuit = Circuit();
 
-	systemCircuit.modules["broadcaster"] = &broadCaster;
-	systemCircuit.modules["a"] = &flipflop1;
-	systemCircuit.modules["b"] = &flipflop2;
-	systemCircuit.modules["c"] = &flipflop3;
-	systemCircuit.modules["inv"] = &conjection1;
+	//systemCircuit.modules.insert(std::make_pair("broadcaster", new BroadCaster("a,b,c")));
+	//systemCircuit.modules.insert(std::make_pair("a", new FlipFlop("b")));
+	//systemCircuit.modules.insert(std::make_pair("b", new FlipFlop("c")));
+	//systemCircuit.modules.insert(std::make_pair("c", new FlipFlop("inv")));
+	//systemCircuit.modules.insert(std::make_pair("inv", new Conjunction("a", std::vector<std::string>{"c"})));
 
-	systemCircuit.runCircuit();
+	//systemCircuit.runCircuit();
+	//systemCircuit.runCircuit(999);
 
-	// Test Second Example Manual
-	auto systemCircuit2 = Circuit();
+	//// Test Second Example Manual
+	//auto systemCircuit2 = Circuit();
 
-	auto broadCaster2 = BroadCaster("a");
-	systemCircuit2.modules["broadcaster"] = &broadCaster2;
+	//systemCircuit2.modules.insert(std::make_pair("broadcaster", new BroadCaster("a")));
+	//systemCircuit2.modules.insert(std::make_pair("a", new FlipFlop(std::vector<std::string>{"inv", "con"})));
+	//systemCircuit2.modules.insert(std::make_pair("inv", new Conjunction("b", std::vector<std::string>{"a"})));
+	//systemCircuit2.modules.insert(std::make_pair("b", new FlipFlop("con")));
+	//systemCircuit2.modules.insert(std::make_pair("con", new Conjunction("output", std::vector<std::string>{"a", "b"})));
+	//systemCircuit2.modules.insert(std::make_pair("output", new Output()));
 
-	auto flipflop12 = FlipFlop(std::vector<std::string>{"inv", "con"});
-	systemCircuit2.modules["a"] = &flipflop12;
+	//systemCircuit2.runCircuit();
+	//systemCircuit2.runCircuit();
+	//systemCircuit2.runCircuit();
+	//systemCircuit2.runCircuit();
+	//systemCircuit2.runCircuit(996);
 
-	auto conjection12 = Conjunction("b", std::vector<std::string>{"a"});
-	systemCircuit2.modules["inv"] = &conjection12;
+	// Read Input of Testing circuits
+	//Circuit testCircuit1 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20test1.txt");
+	//testCircuit1.runCircuit();
+	//testCircuit1.runCircuit(999);
+	//std::cout << "Test 1 part 1: " << testCircuit1.computePart1() << std::endl;
 
-	auto flipflop22 = FlipFlop("con");
-	systemCircuit2.modules["b"] = &flipflop22;
+	//Circuit testCircuit2 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20test2.txt");
+	//testCircuit2.modules.insert(std::make_pair("output", new Output()));
+	//testCircuit2.runCircuit();
+	//testCircuit2.runCircuit(999);
+	//std::cout << "Test 2 part 1: " << testCircuit2.computePart1() << std::endl;
 
-	auto conjection22 = Conjunction("output", std::vector<std::string>{"a", "b"});
-	systemCircuit2.modules["con"] = &conjection22;
-
-	auto outputer = Output();
-	systemCircuit2.modules["output"]      = &outputer;
-
-	/*systemCircuit2.runCircuit();
-	systemCircuit2.runCircuit();
-	systemCircuit2.runCircuit();
-	systemCircuit2.runCircuit();*/
-	systemCircuit2.runCircuit(1000);
+	Circuit realCircuit = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20real.txt");
+	realCircuit.modules.insert(std::make_pair("rx", new Output()));
+	realCircuit.runCircuit();
+	realCircuit.runCircuit(999);
+	std::cout << "Real part 1: " << realCircuit.computePart1() << std::endl; //137247232 is too low
 
 	auto ending = 90;
 }
