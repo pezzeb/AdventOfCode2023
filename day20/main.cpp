@@ -40,7 +40,7 @@ splitStringIntoVector(const std::string inputString, const char delimiter = ',')
 	return output;
 }
 
-enum VOLT { HIGH, LOW, DNQ };
+enum VOLT { HIGH, LOW, DNQ, STOP };
 
 class Pulse
 {
@@ -227,7 +227,10 @@ public:
 
 	std::vector<Pulse> computePulse(Pulse pulse)
 	{
-		return std::vector<Pulse> {Pulse()};
+		if(pulse.getVoltage() == HIGH)
+			return std::vector<Pulse> {Pulse(STOP)};
+		else
+			return std::vector<Pulse> {Pulse()};
 	}
 };
 
@@ -236,11 +239,19 @@ class Circuit
 private:
 	long long numberOfLow;
 	long long numberOfHigh;
+	long long buttonPresses;
+	bool breakOnLowHighOutput;
 public:
 	std::queue<Pulse> pulseQueue;
 	std::map <std::string, Module*> modules;
 
-	Circuit() = default;
+	Circuit()
+	{
+		numberOfLow = 0;
+		numberOfHigh = 0;
+		buttonPresses = 0;
+		breakOnLowHighOutput = false;
+	}
 
 	void addPulsesToBeHandled(std::vector<Pulse> vec)
 	{
@@ -250,13 +261,18 @@ public:
 		}
 	}
 
-	void handlePulse()
+	bool handlePulse()
 	{
 		Pulse it = pulseQueue.front();
 		pulseQueue.pop();
 		if (it.getVoltage() == DNQ)
 		{ 
 			// Do nothing
+			return false;
+		}
+		else if (it.getVoltage() == STOP)
+		{
+			return true;
 		}
 		else
 		{
@@ -268,26 +284,35 @@ public:
 			auto nextModule = modules[it.getNextModule()];
 			auto morePulses = nextModule->computePulse(it);
 			addPulsesToBeHandled(morePulses);
+			return false;
 		}
 	}
 
-	void runCircuit()
+	bool runCircuit()
 	{
+		buttonPresses++;
 		pulseQueue.push(Pulse("broadcaster", LOW));
 		while (true)
 		{
 			if (pulseQueue.size() == 0)
 				break;
 			else
-				handlePulse();
+			{
+				if (handlePulse() and breakOnLowHighOutput)
+				{
+					return true;
+				}
+			}
 		}
+		return false;
 	}
 
 	void runCircuit(long long n)
 	{
 		for (size_t i = 0; i < n; i++)
 		{
-			runCircuit();
+			if (runCircuit() and breakOnLowHighOutput)
+				break;
 		}
 	}
 
@@ -295,6 +320,17 @@ public:
 	{
 		return numberOfLow * numberOfHigh;
 	}
+
+	long long getButtonPresses()
+	{
+		return buttonPresses;
+	}
+
+	void toogleShortBreak()
+	{
+		breakOnLowHighOutput = not breakOnLowHighOutput;
+	}
+
 };
 
 std::string removeSpacesLine(std::string line)
@@ -426,22 +462,52 @@ int main()
 	//systemCircuit2.runCircuit(996);
 
 	// Read Input of Testing circuits
-	//Circuit testCircuit1 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20test1.txt");
-	//testCircuit1.runCircuit();
-	//testCircuit1.runCircuit(999);
-	//std::cout << "Test 1 part 1: " << testCircuit1.computePart1() << std::endl;
+	Circuit testCircuit1 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20test1.txt");
+	testCircuit1.runCircuit();
+	testCircuit1.runCircuit(999);
+	std::cout << "Test 1 part 1: " << testCircuit1.computePart1() << std::endl;
 
-	//Circuit testCircuit2 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20test2.txt");
-	//testCircuit2.modules.insert(std::make_pair("output", new Output()));
-	//testCircuit2.runCircuit();
-	//testCircuit2.runCircuit(999);
-	//std::cout << "Test 2 part 1: " << testCircuit2.computePart1() << std::endl;
+	Circuit testCircuit2 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20test2.txt");
+	testCircuit2.modules.insert(std::make_pair("output", new Output()));
+	testCircuit2.runCircuit();
+	testCircuit2.runCircuit(999);
+	std::cout << "Test 2 part 1: " << testCircuit2.computePart1() << std::endl;
 
 	Circuit realCircuit = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20real.txt");
 	realCircuit.modules.insert(std::make_pair("rx", new Output()));
 	realCircuit.runCircuit();
 	realCircuit.runCircuit(999);
-	std::cout << "Real part 1: " << realCircuit.computePart1() << std::endl; //137247232 is too low
+	std::cout << "Real part 1: " << realCircuit.computePart1() << std::endl; 
+	
+	Circuit realCircuit1 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20real_1.txt");
+	realCircuit1.toogleShortBreak();
+	realCircuit1.modules.insert(std::make_pair("rx1", new Output()));
+	realCircuit1.runCircuit(10000);
+	
+	Circuit realCircuit2 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20real_2.txt");
+	realCircuit2.toogleShortBreak();
+	realCircuit2.modules.insert(std::make_pair("rx2", new Output()));
+	realCircuit2.runCircuit(10000);
+
+	Circuit realCircuit3 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20real_3.txt");
+	realCircuit3.toogleShortBreak();
+	realCircuit3.modules.insert(std::make_pair("rx3", new Output()));
+	realCircuit3.runCircuit(10000);
+
+	Circuit realCircuit4 = parseInputToCircuit("C:/Users/soder/Source/Repos/pezzeb/AdventOfCode2023/data/day20real_4.txt");
+	realCircuit4.toogleShortBreak();
+	realCircuit4.modules.insert(std::make_pair("rx4", new Output()));
+	realCircuit4.runCircuit(10000);
+	
+	std::cout << "part 2 real: " <<
+		realCircuit1.getButtonPresses() *
+		realCircuit2.getButtonPresses() *
+		realCircuit3.getButtonPresses() *
+		realCircuit4.getButtonPresses()
+		<< std::endl;
+
+	// go through all the four different sub circuits and find the number of presses:3797; 3889; 3739; 3761
+	// which if you multiply them becomes 207652583562007 = 3797*3889*3739*3761
 
 	auto ending = 90;
 }
