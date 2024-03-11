@@ -85,7 +85,6 @@ class Brick // This is a abstract class
 
 	bool isStationary = false;
 
-
 public:
 
 	bool isExisting = true;
@@ -154,8 +153,6 @@ class collectionOfBricks
 {
 	std::vector<Brick> bricks;
 
-	
-
 	bool isRangeLeftInsideTheRight(double left1, double left2, double right1, double right2)
 	{
 		// we assume the left1 <= left2 ; and right1 <= right2
@@ -178,33 +175,11 @@ class collectionOfBricks
 
 	bool overLappingbricks(Brick& br1, Brick& br2)
 	{ //https://stackoverflow.com/questions/55220355/how-to-detect-whether-two-segments-in-3d-space-intersect
-
-
-		//if (br1.orientationOfBrick == CUBE and br2.orientationOfBrick == CUBE)
-		//{
-		//	return br1.getPos1().x == br2.getPos1().x and br1.getPos1().y == br2.getPos1().y and br1.getPos1().z == br2.getPos1().z;
-		//}
-		//else if (br2.orientationOfBrick == CUBE) //assume from this point that only br1 can be a cube
-		//{
-		//	return overLappingbricks(br2, br1);
-		//}
-		//else if (br1.orientationOfBrick == CUBE) //br1 is a cube
-		//{
-		//	return br1.getPos1().x <= br2.getPos1().x <= br1.getPos2().x and
-		//		br1.getPos1().y <= br2.getPos1().y <= br1.getPos2().y and
-		//		br1.getPos1().z <= br2.getPos1().z <= br1.getPos2().z;
-		//}
-
-		//// From this point is NONE of the two a cube 
-		//auto potentialOverlapping = 
-		//	br1.getPos1().x <= br2.getPos1().x <= br1.getPos2().x and
-		//	br1.getPos1().y <= br2.getPos1().y <= br1.getPos2().y and
-		//	br1.getPos1().z <= br2.getPos1().z <= br1.getPos2().z;
 		
 		auto br1IsInside2 = isRangeLeftInsideTheRight(br1, br2);
 		auto br2IsInside1 = isRangeLeftInsideTheRight(br1, br2); //Not sure that I need both...
 
-		if (!br1IsInside2 and !br2IsInside1) //is this sufficient?
+		if (!br1IsInside2 and !br2IsInside1) 
 			return false;
 		else
 			return true;
@@ -287,36 +262,6 @@ public:
 		}
 		return false;
 	}
-	bool checkIfAnyLoose()
-	{
-		for (size_t i = 0; i < bricks.size(); i++)
-		{
-			Brick& brickN = bricks[i];
-			if (brickN.isExisting)
-			{
-				if (brickN.findMinimumZ() == 0)//have passed through the floor, so it is overlapping
-				{
-					auto kola = 90;
-					//return true;
-				}
-				else
-				{
-					for (long long j = i - 1; j >= 0; j--)
-					{
-						if (bricks[j].isExisting and overLappingbricks(brickN, bricks[j])) //overlapping
-						{
-
-						}
-						else
-						{
-							return true;
-						}
-					}
-				}
-			}
-		}
-		return false;
-	}
 
 	void stablizePile()
 	{
@@ -336,14 +281,15 @@ public:
 				}
 			}
 		}
+		sortBricks();
 	}
 
 	long long countNonRedunant()
 	{
 		long long cumsum = 0;
-		sortBricks();
 		for (size_t i = 0; i < bricks.size(); i++)
 		{
+			std::cout << i << ";";
 			Brick& brickN = bricks[i];
 			brickN.isExisting = false;
 			bool overlappingBrick = false;
@@ -353,24 +299,73 @@ public:
 			{
 				Brick& brickLoop = bricks[j];
 				brickLoop.applyGravity();
-				//bool LooseBrick = overLappingbricks(brickN, brickLoop); // this means that brickLoop is loose, since brickN is not existing
-				//bool hasBrickFallenBelowFloor = brickLoop.getPos1().z < 0;
-				// This does not suffice, since other Bricks can still support it...
 				bool LooseBrick = checkIfOverlapping(j); //if NO overLapping it could move freely
 
 				if (!LooseBrick) //if not overlapping it could move freely -> nonRedundant was removed
 				{
 					if (!somethingHasFallen) //Debugging but not to double count
 						cumsum += 1;
-					//brickN.isExisting = true;
 					somethingHasFallen = true;
 				}
 				brickLoop.reverseGravity();
 			}
 			brickN.isExisting = true;
 		}
+		std::cout << std::endl;
 		return bricks.size() - cumsum;
 	}
+
+	void makeAllExistAgain()
+	{
+		for (long long i = bricks.size() - 1; i >= 0; i--) // Compute from the top
+			bricks[i].isExisting = true;
+	}
+
+	long long countNonExisting()
+	{
+		long long cumsum = 0;
+		for (long long i = bricks.size() - 1; i >= 0; i--) // Compute from the top
+		{
+			if (!bricks[i].isExisting)
+				cumsum++;
+		}
+		return cumsum;
+	}
+
+	//0 - A; 1 - B; 2 - C; 3 - D; 4 - E; 5 - F; 6 - G
+	long long countDisintegrating()
+	{
+		long long cumsum = 0;
+		for (long long i = bricks.size()-1; i >= 0; i--) // Compute from the top
+		{
+			std::cout << i << ";";
+			Brick& brickN = bricks[i];
+			brickN.isExisting = false;
+			bool overlappingBrick = false;
+			bool somethingHasFallen = false;
+
+			for (long long j = i + 1; j < bricks.size(); j++) //check the ones that are above
+			{
+				Brick& brickLoop = bricks[j];
+				brickLoop.applyGravity();
+				bool LooseBrick = checkIfOverlapping(j); //if NO overLapping it could move freely
+
+				if (!LooseBrick) //if not overlapping it could move freely -> nonRedundant was removed
+				{
+					brickLoop.isExisting = false;
+					//somethingHasFallen = true;
+				}
+				brickLoop.reverseGravity();
+			}
+			long long tmpsum = countNonExisting() - 1; // one is non existing per default
+			cumsum += tmpsum;
+			makeAllExistAgain();
+		}
+		std::cout << std::endl;
+		return cumsum;
+	}
+
+	
 
 	void applyGravity() 
 	{
@@ -387,6 +382,11 @@ public:
 		stablizePile();
 		return countNonRedunant();
 	}
+	long long computePar2()
+	{
+		stablizePile(); //This is perhaps redundant
+		return countDisintegrating();
+	}
 };
 
 
@@ -396,12 +396,18 @@ int main()
 	auto testData = readData("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day22.txt");
 	auto testCollection = collectionOfBricks(testData);
 	long long testPart1RedundantBricks = testCollection.computePar1();
+	long long testPart2RedundantBricks = testCollection.computePar2();
+	std::cout << "Test part 1: " << testPart1RedundantBricks << std::endl;
+	std::cout << "Test part 2: " << testPart2RedundantBricks << std::endl;
 
 	auto realData = readData("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day22real.txt");
 	auto realCollection = collectionOfBricks(realData);
 	long long realPart1RedundantBricks = realCollection.computePar1();
+	long long realPart2RedundantBricks = realCollection.computePar2();
+	std::cout << "Test part 1: " << realPart1RedundantBricks << std::endl;
+	std::cout << "Test part 2: " << realPart2RedundantBricks << std::endl;
 
-	std::cout << "Part 1 test: " << testPart1RedundantBricks << "; real: " << realPart1RedundantBricks << std::endl;
+
 
 	//1499 is too high!
 
