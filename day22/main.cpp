@@ -40,6 +40,7 @@ splitStringIntoVector(const std::string inputString, const char delimiter = ',')
 	return output;
 }
 
+enum brickOrientation { XBAR, YBAR, ZBAR, CUBE };
 
 class Position
 {
@@ -81,16 +82,29 @@ class Brick // This is a abstract class
 {
 	Position pos1;
 	Position pos2;
-	bool isExisting = true;
+
 	bool isStationary = false;
 
+
 public:
+
+	bool isExisting = true;
+	brickOrientation orientationOfBrick;
 
 	Brick(std::string str)
 	{
 		auto stringPositions = splitStringIntoVector(str, '~');
 		pos1 = Position(stringPositions[0]);
 		pos2 = Position(stringPositions[1]);
+
+		if (pos1.getX() == pos2.getX() and pos1.getY() == pos2.getY() and pos1.getZ() == pos2.getZ())
+			orientationOfBrick = CUBE;
+		else if (pos1.getX() == pos2.getX() and pos1.getY() == pos2.getY())
+			orientationOfBrick = ZBAR;
+		else if (pos1.getX() == pos2.getX() and pos1.getZ() == pos2.getZ())
+			orientationOfBrick = YBAR;
+		else
+			orientationOfBrick = XBAR;
 	}
 
 	Position getPos1()
@@ -140,27 +154,60 @@ class collectionOfBricks
 {
 	std::vector<Brick> bricks;
 
-	bool overLappingbricks(Brick& br1, Brick& br2)
+	
+
+	bool isRangeLeftInsideTheRight(double left1, double left2, double right1, double right2)
 	{
-		long long dp_x = br1.getPos1().x - br2.getPos1().x;
-		long long dp_y = br1.getPos1().y - br2.getPos1().y;
-		long long dp_z = br1.getPos1().z - br2.getPos1().z;
+		// we assume the left1 <= left2 ; and right1 <= right2
+		if (right1 <= left1 and left1 <= right2)
+			return true;
+		if (right1 <= left2 and left2 <= right2)
+			return true;
+		if (left1 <= right1 and left2 >= right2)
+			return true;
+		return false;
+	}
+	
+	bool isRangeLeftInsideTheRight(Brick& br1, Brick& br2)
+	{
+		return
+			isRangeLeftInsideTheRight(br1.getPos1().x, br1.getPos2().x, br2.getPos1().x, br2.getPos2().x) and
+			isRangeLeftInsideTheRight(br1.getPos1().y, br1.getPos2().y, br2.getPos1().y, br2.getPos2().y) and
+			isRangeLeftInsideTheRight(br1.getPos1().z, br1.getPos2().z, br2.getPos1().z, br2.getPos2().z);
+	}
+
+	bool overLappingbricks(Brick& br1, Brick& br2)
+	{ //https://stackoverflow.com/questions/55220355/how-to-detect-whether-two-segments-in-3d-space-intersect
+
+
+		//if (br1.orientationOfBrick == CUBE and br2.orientationOfBrick == CUBE)
+		//{
+		//	return br1.getPos1().x == br2.getPos1().x and br1.getPos1().y == br2.getPos1().y and br1.getPos1().z == br2.getPos1().z;
+		//}
+		//else if (br2.orientationOfBrick == CUBE) //assume from this point that only br1 can be a cube
+		//{
+		//	return overLappingbricks(br2, br1);
+		//}
+		//else if (br1.orientationOfBrick == CUBE) //br1 is a cube
+		//{
+		//	return br1.getPos1().x <= br2.getPos1().x <= br1.getPos2().x and
+		//		br1.getPos1().y <= br2.getPos1().y <= br1.getPos2().y and
+		//		br1.getPos1().z <= br2.getPos1().z <= br1.getPos2().z;
+		//}
+
+		//// From this point is NONE of the two a cube 
+		//auto potentialOverlapping = 
+		//	br1.getPos1().x <= br2.getPos1().x <= br1.getPos2().x and
+		//	br1.getPos1().y <= br2.getPos1().y <= br1.getPos2().y and
+		//	br1.getPos1().z <= br2.getPos1().z <= br1.getPos2().z;
 		
-		long long v1_x = br1.getPos1().x - br1.getPos2().x;
-		long long v1_y = br1.getPos1().y - br1.getPos2().y;
-		long long v1_z = br1.getPos1().z - br1.getPos2().z;
+		auto br1IsInside2 = isRangeLeftInsideTheRight(br1, br2);
+		auto br2IsInside1 = isRangeLeftInsideTheRight(br1, br2); //Not sure that I need both...
 
-		long long v2_x = br2.getPos1().x - br2.getPos2().x;
-		long long v2_y = br2.getPos1().y - br2.getPos2().y;
-		long long v2_z = br2.getPos1().z - br2.getPos2().z;
-
-		long long w_x = v1_y * v2_z - v1_z * v2_y;
-		long long w_y = v1_z * v2_x - v1_x * v2_z;
-		long long w_z = v1_x * v2_y - v1_y * v2_x;
-
-		auto res = w_x * dp_x + w_y * dp_y + w_z * dp_z;
-
-		return res == 0;
+		if (!br1IsInside2 and !br2IsInside1) //is this sufficient?
+			return false;
+		else
+			return true;
 	}
 
 	void sortBricks()
@@ -183,43 +230,146 @@ public:
 
 	}
 	
-	bool stablizePile()
+	bool checkIfOverlapping(long long i)
 	{
-		bool stable = true;
-		sortBricks();
+		//for (size_t i = 0; i < bricks.size(); i++)
+		//{
+			Brick& brickN = bricks[i];
+			if (brickN.isExisting)
+			{
+				if (brickN.findMinimumZ() == 0)//have passed through the floor, so it is overlapping
+				{
+					return true;
+				}
+				else
+				{
+					for (size_t j = 0; j <= i; j++)
+					{
+						if (i != j)
+						{
+							if (bricks[j].isExisting and overLappingbricks(brickN, bricks[j])) //overlapping
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+		//}
+		return false;
+	}
+
+	bool checkIfOverlapping()
+	{
 		for (size_t i = 0; i < bricks.size(); i++)
 		{
 			Brick& brickN = bricks[i];
-			bool overlappingBrick = false;
-			while (not overlappingBrick)
+			if (brickN.isExisting)
 			{
-				brickN.applyGravity();
-				if (brickN.findMinimumZ() == 0)
+				if (brickN.findMinimumZ() == 0)//have passed through the floor, so it is overlapping
 				{
-					brickN.reverseGravity();
-					overlappingBrick = true;
+					return true;
+				}
+				else
+				{
+					for (size_t j = 0; j <= i; j++)
+					{
+						if (i != j)
+						{
+							if (bricks[j].isExisting and overLappingbricks(brickN, bricks[j])) //overlapping
+							{
+								return true;
+							}
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+	bool checkIfAnyLoose()
+	{
+		for (size_t i = 0; i < bricks.size(); i++)
+		{
+			Brick& brickN = bricks[i];
+			if (brickN.isExisting)
+			{
+				if (brickN.findMinimumZ() == 0)//have passed through the floor, so it is overlapping
+				{
+					auto kola = 90;
+					//return true;
 				}
 				else
 				{
 					for (long long j = i - 1; j >= 0; j--)
 					{
-						overlappingBrick = overlappingBrick or overLappingbricks(brickN, bricks[j]);
+						if (bricks[j].isExisting and overLappingbricks(brickN, bricks[j])) //overlapping
+						{
+
+						}
+						else
+						{
+							return true;
+						}
 					}
-					if (overlappingBrick) //overlapping
-					{
-						brickN.reverseGravity();
-						overlappingBrick = true;
-					}
-					else
-						stable = false;
 				}
 			}
 		}
-		return stable;
+		return false;
 	}
-	long long countRedunant()
+
+	void stablizePile()
 	{
-		
+		for (size_t i = 0; i < bricks.size(); i++)
+		{
+			sortBricks();
+			Brick& brickN = bricks[i];
+			bool overlappingBrick = false;
+			while (not overlappingBrick)
+			{
+				brickN.applyGravity();
+				overlappingBrick = checkIfOverlapping(i);
+
+				if (overlappingBrick)
+				{
+					brickN.reverseGravity();
+				}
+			}
+		}
+	}
+
+	long long countNonRedunant()
+	{
+		long long cumsum = 0;
+		sortBricks();
+		for (size_t i = 0; i < bricks.size(); i++)
+		{
+			Brick& brickN = bricks[i];
+			brickN.isExisting = false;
+			bool overlappingBrick = false;
+			bool somethingHasFallen = false;
+
+			for (long long j = i + 1; j < bricks.size(); j++)
+			{
+				Brick& brickLoop = bricks[j];
+				brickLoop.applyGravity();
+				//bool LooseBrick = overLappingbricks(brickN, brickLoop); // this means that brickLoop is loose, since brickN is not existing
+				//bool hasBrickFallenBelowFloor = brickLoop.getPos1().z < 0;
+				// This does not suffice, since other Bricks can still support it...
+				bool LooseBrick = checkIfOverlapping(j); //if NO overLapping it could move freely
+
+				if (!LooseBrick) //if not overlapping it could move freely -> nonRedundant was removed
+				{
+					if (!somethingHasFallen) //Debugging but not to double count
+						cumsum += 1;
+					//brickN.isExisting = true;
+					somethingHasFallen = true;
+				}
+				brickLoop.reverseGravity();
+			}
+			brickN.isExisting = true;
+		}
+		return bricks.size() - cumsum;
 	}
 
 	void applyGravity() 
@@ -232,8 +382,12 @@ public:
 		}
 	}
 
+	long long computePar1()
+	{
+		stablizePile();
+		return countNonRedunant();
+	}
 };
-
 
 
 
@@ -241,11 +395,15 @@ int main()
 {
 	auto testData = readData("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day22.txt");
 	auto testCollection = collectionOfBricks(testData);
+	long long testPart1RedundantBricks = testCollection.computePar1();
 
-	testCollection.stablizePile();
+	auto realData = readData("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day22real.txt");
+	auto realCollection = collectionOfBricks(realData);
+	long long realPart1RedundantBricks = realCollection.computePar1();
 
-	//hanterar inte kuber korrekt i matchning...
+	std::cout << "Part 1 test: " << testPart1RedundantBricks << "; real: " << realPart1RedundantBricks << std::endl;
 
+	//1499 is too high!
 
 	int asdf = 90;
 }
