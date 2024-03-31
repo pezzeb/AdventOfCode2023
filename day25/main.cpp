@@ -45,8 +45,6 @@ splitStringIntoVector(const std::string inputString, const char delimiter = ',')
 	return output;
 }
 
-
-
 std::map<std::string, std::vector<std::string>> readData(std::string dataFile)
 {
 	std::ifstream inputFile(dataFile);
@@ -83,8 +81,6 @@ std::map<std::string, std::vector<std::string>> readData(std::string dataFile)
 
 class Graph25
 {
-
-
 	long long randomNumber(long long num)
 	{
 		auto randInt1 = rand() % num;
@@ -93,54 +89,49 @@ class Graph25
 
 public:
 
+	// Kragers Algorithm
+
 	std::map<std::string, std::vector<std::string>> graphRepresentation;
 	std::vector<std::string> nodeNames;
 
-	/*Graph25(std::string path)
+	Graph25(std::string path)
 	{
+		auto dataRead = readData(path);
 
-	}*/
 
-	
+		std::vector<std::string> allNodes;
+
+		for (auto kv : dataRead)
+		{
+			allNodes.push_back(kv.first);
+		}
+		graphRepresentation = dataRead;
+		nodeNames = allNodes;
+	}
 
 	bool contractNodes()
 	{
 		if (graphRepresentation.size() > 2)
 		{
-			long long randomNodeid = randomNumber(graphRepresentation.size());
-			std::string node1Name = nodeNames[randomNodeid];
-
+			std::string node1Name = nodeNames[randomNumber(graphRepresentation.size())];
 			auto possibleNodesToContract = graphRepresentation[node1Name];
-			long long randomNode2id = randomNumber(possibleNodesToContract.size());
-			std::string node2Name = possibleNodesToContract[randomNode2id];
+			std::string node2Name = possibleNodesToContract[randomNumber(possibleNodesToContract.size())];
 
-			auto adjacentNodesToNode1 = graphRepresentation[node1Name];
-			auto adjacentNodesToNode2 = graphRepresentation[node2Name];
-			std::vector<std::string> allnewLeaveNodes;
+			auto allAdjacentNodes = graphRepresentation[node1Name];
 
-			allnewLeaveNodes = adjacentNodesToNode1;
-			allnewLeaveNodes.insert(allnewLeaveNodes.end(), adjacentNodesToNode2.begin(), adjacentNodesToNode2.end());
+			allAdjacentNodes.insert(allAdjacentNodes.end(), graphRepresentation[node2Name].begin(), graphRepresentation[node2Name].end());
 
-			allnewLeaveNodes.erase(
-				std::remove_if(
-					allnewLeaveNodes.begin(),
-					allnewLeaveNodes.end(),
-					[node1Name, node2Name](std::string str) { return str == node1Name || str == node2Name; }),
-				allnewLeaveNodes.end());
+			allAdjacentNodes.erase(std::remove(allAdjacentNodes.begin(), allAdjacentNodes.end(), node1Name), allAdjacentNodes.end());
+			allAdjacentNodes.erase(std::remove(allAdjacentNodes.begin(), allAdjacentNodes.end(), node2Name), allAdjacentNodes.end());
+
+			nodeNames.erase(std::remove(nodeNames.begin(), nodeNames.end(), node1Name), nodeNames.end());
+			nodeNames.erase(std::remove(nodeNames.begin(), nodeNames.end(), node2Name), nodeNames.end());
 
 			std::string nodeMergedName = node1Name + ";" + node2Name;
 			nodeNames.push_back(nodeMergedName);
-			nodeNames.erase(
-				std::remove_if(
-					nodeNames.begin(),
-					nodeNames.end(),
-					[node1Name, node2Name](std::string str) { return str == node1Name || str == node2Name; }),
-				nodeNames.end());
 
-			for (auto leaf : allnewLeaveNodes)
+			for (auto leaf : allAdjacentNodes)
 			{
-				//auto temp = graphRepresentation[leaf];
-				
 				auto it1 = std::find(graphRepresentation[leaf].begin(), graphRepresentation[leaf].end(), node1Name);
 				if (it1 != graphRepresentation[leaf].end())
 					*it1 = nodeMergedName;
@@ -148,11 +139,9 @@ public:
 				it1 = std::find(graphRepresentation[leaf].begin(), graphRepresentation[leaf].end(), node2Name);
 				if (it1 != graphRepresentation[leaf].end())
 					*it1 = nodeMergedName;
-
-				graphRepresentation[leaf] = graphRepresentation[leaf];
 			}
 
-			graphRepresentation[nodeMergedName] = allnewLeaveNodes;
+			graphRepresentation[nodeMergedName] = allAdjacentNodes;
 			graphRepresentation.erase(graphRepresentation.find(node1Name));
 			graphRepresentation.erase(graphRepresentation.find(node2Name));
 
@@ -166,58 +155,39 @@ public:
 
 	void contractNodesWhile()
 	{
-		while (!contractNodes())
-		{
-
-		}
+		while (!contractNodes()) {}
 	}
-
 };
 
-void main()
+long long computeDay25(Graph25 graphN)
 {
-
-	//auto kol123a = readData("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day25test.txt");
-	auto kol123a = readData("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day25real.txt");
-	std::vector<std::string> allNodes;
-
-	for (auto kv : kol123a)
-	{
-		allNodes.push_back(kv.first);
-	}
-	auto graphTest = Graph25();
-	graphTest.graphRepresentation = kol123a;
-	graphTest.nodeNames = allNodes;
-
 	long long res;
-	long long ijk = 0;
 	while (true)
 	{
-		ijk++;
-		std::cout << ijk << std::endl;
-		auto copyOfGraph = graphTest;
+		auto copyOfGraph = graphN;
 		copyOfGraph.contractNodesWhile();
 
 		auto kv1 = copyOfGraph.graphRepresentation.begin();
-		//auto kv2 = copyOfGraph.graphRepresentation.begin() + 1;
 		if (kv1->second.size() == 3)
 		{
-			auto weAreDone = 123;
 			long long fac1 = splitStringIntoVector(kv1->first, ';').size();
 			kv1++;
 			long long fac2 = splitStringIntoVector(kv1->first, ';').size();
 			res = fac1 * fac2;
-			std::cout << "Ansewer: " << res << std::endl;
 			break;
 		}
-
 	}
-	//auto graphTest2 = graphTest;
-	//auto graphTest3 = graphTest;
-	//auto graphTest4 = graphTest;
-	//graphTest2.contractNodesWhile();
-	//graphTest3.contractNodesWhile();
-	//graphTest4.contractNodesWhile();
-	
+	return res;
+}
+
+void main()
+{
+	Graph25 graphTest = Graph25("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day25test.txt");
+	auto testRes = computeDay25(graphTest);
+
+	Graph25 graphReal = Graph25("C:/Users/soder/source/repos/pezzeb/AdventOfCode2023/data/day25real.txt");
+	auto realRes = computeDay25(graphReal);
+
+	std::cout << "Test: " << testRes << " and Real: " << realRes << std::endl;
 
 }
